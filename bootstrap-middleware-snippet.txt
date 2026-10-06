@@ -1,0 +1,7 @@
+Di bootstrap/app.php (Laravel 12), daftarkan alias middleware 'current.book' di dalam withMiddleware():
+
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->alias([
+        'current.book' => \App\Http\Middleware\EnsureCurrentBook::class,
+    ]);
+})
