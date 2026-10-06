@@ -46,6 +46,9 @@
         </div>
     </div>
 
+    {{-- Donut pengeluaran per kategori + perbandingan bulan lalu --}}
+    @include('partials.category-donut', ['breakdown' => $breakdown, 'monthLabel' => $monthLabel])
+
     {{-- Pengeluaran per kategori (bulan terpilih), tap untuk lihat item --}}
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
         @foreach($categories as $cat)

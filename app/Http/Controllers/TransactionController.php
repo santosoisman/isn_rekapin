@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\CategoryBreakdown;
 use App\Support\MonthTabs;
 use Illuminate\Http\Request;
 
@@ -52,9 +53,11 @@ class TransactionController extends Controller
         $categories = $book->categories()->with(['items' => fn ($q) => $q->orderBy('name')])->get();
         $itemsByCategory = $categories->mapWithKeys(fn ($cat) => [$cat->id => $cat->items->pluck('name')]);
 
+        $breakdown = CategoryBreakdown::make($book, $from, $to);
+
         return view('transactions.index', compact(
             'book', 'months', 'monthLabel', 'jenis', 'days',
-            'monthIncome', 'monthExpense', 'categories', 'itemsByCategory'
+            'monthIncome', 'monthExpense', 'categories', 'itemsByCategory', 'breakdown'
         ));
     }
 }

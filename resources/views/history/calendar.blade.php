@@ -61,6 +61,20 @@
                                                         <span x-text="r.price != null ? formatFull(r.price) : ''"></span>
                                                     </div>
                                                 </template>
+                                                <template x-if="item.receipt.adjustments && item.receipt.adjustments.length">
+                                                    <div class="border-t pt-0.5 mt-0.5 space-y-0.5">
+                                                        <template x-for="(a, i2) in item.receipt.adjustments" :key="'a' + i2">
+                                                            <div class="flex justify-between gap-2">
+                                                                <span x-text="a.label"></span>
+                                                                <span x-text="(a.amount < 0 ? '- ' : '+ ') + formatFull(Math.abs(a.amount))"></span>
+                                                            </div>
+                                                        </template>
+                                                        <div class="flex justify-between gap-2 font-medium">
+                                                            <span>Total dibayar</span>
+                                                            <span x-text="formatFull(item.amount)"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
                                                 <p class="text-[10px] text-gray-400">Hasil scan, tidak ikut perhitungan.</p>
                                             </div>
                                         </details>
@@ -84,6 +98,10 @@
             </div>
         </template>
     </div>
+</div>
+
+<div class="mt-4">
+    @include('partials.category-donut', ['breakdown' => $breakdown, 'monthLabel' => $monthLabel])
 </div>
 
 <script>

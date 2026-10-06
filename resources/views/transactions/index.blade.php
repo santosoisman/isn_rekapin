@@ -30,6 +30,10 @@
         </div>
     </div>
 
+    @if($jenis !== 'masuk')
+        @include('partials.category-donut', ['breakdown' => $breakdown, 'monthLabel' => $monthLabel])
+    @endif
+
     <script type="application/json" id="tx-items-by-category-json">{!! json_encode($itemsByCategory) !!}</script>
 
     @forelse($days as $day)

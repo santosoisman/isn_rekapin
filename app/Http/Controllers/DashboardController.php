@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\CategoryBreakdown;
 use App\Support\MonthTabs;
 use Illuminate\Http\Request;
 
@@ -68,6 +69,8 @@ class DashboardController extends Controller
             ->sortByDesc(fn ($tx) => $tx->date->timestamp * 1000000 + $tx->id)
             ->values();
 
+        $breakdown = CategoryBreakdown::make($book, $from, $to);
+
         $recent = $allMonthTx->take(10);
         $monthTxCount = $allMonthTx->count();
 
@@ -76,7 +79,7 @@ class DashboardController extends Controller
             'months', 'monthLabel',
             'monthIncome', 'monthExpense',
             'categories', 'categoryTotals', 'itemTotalsByCategory',
-            'recent', 'monthTxCount'
+            'recent', 'monthTxCount', 'breakdown'
         ));
     }
 }

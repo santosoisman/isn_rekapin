@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\CategoryBreakdown;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class HistoryController extends Controller
@@ -11,8 +13,15 @@ class HistoryController extends Controller
     {
         $book = $request->attributes->get('currentBook');
 
-        $month = $request->query('month', now()->format('Y-m'));
+        $month = (string) $request->query('month', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+            $month = now()->format('Y-m');
+        }
         [$year, $mon] = explode('-', $month);
+
+        $start = Carbon::createFromFormat('!Y-m', $month)->startOfMonth();
+        $breakdown = CategoryBreakdown::make($book, $start->toDateString(), $start->copy()->endOfMonth()->toDateString());
+        $monthLabel = $start->copy()->locale('id')->translatedFormat('F Y');
 
         $expenses = $book->expenses()
             ->whereYear('date', $year)
@@ -22,7 +31,7 @@ class HistoryController extends Controller
             ->get()
             ->keyBy(fn ($row) => $row->date->format('Y-m-d'));
 
-        return view('history.calendar', compact('book', 'month', 'expenses'));
+        return view('history.calendar', compact('book', 'month', 'expenses', 'breakdown', 'monthLabel'));
     }
 
     // AJAX: detail transaksi pada satu tanggal (dipanggil dari Alpine saat klik hari)
