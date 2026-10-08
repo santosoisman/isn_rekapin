@@ -29,7 +29,7 @@ class MonthTabs
             ->merge($book->expenses()->distinct()->pluck('date'))
             ->map(fn ($d) => Carbon::parse($d)->format('Y-m'))
             ->push(now()->format('Y-m'))
-            ->push($selectedKey)
+            ->push($isAll ? now()->format('Y-m') : $selectedKey)
             ->unique()
             ->sort()
             ->values();
