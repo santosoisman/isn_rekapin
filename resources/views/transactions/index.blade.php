@@ -44,14 +44,25 @@
     {{-- Daftar per hari: mulai dari tab terpilih, scroll sampai bawah → hari berikutnya (lebih lama) otomatis muncul --}}
     <div x-data="{
             start: {{ $activeIndex }}, shown: 1, total: {{ $days->count() }},
-            get current() { return Math.min(this.start + this.shown - 1, this.total - 1); },
-            pick(i) { this.start = i; this.shown = 1; },
+            armed: false, baseY: 0,
+            get current() { return this.start; },
+            pick(i) {
+                this.start = i; this.shown = 1; this.armed = false;
+                this.$nextTick(() => { this.baseY = window.scrollY; });
+            },
             init() {
+                this.baseY = window.scrollY;
+                // baru lanjut ke hari berikutnya setelah pengguna benar-benar scroll ke bawah
+                window.addEventListener('scroll', () => {
+                    if (window.scrollY > this.baseY + 20) this.armed = true;
+                }, { passive: true });
                 this.$nextTick(() => {
                     const el = this.$refs.sentinel;
                     if (!el || !('IntersectionObserver' in window)) return;
                     const obs = new IntersectionObserver((entries) => {
                         if (!entries[0].isIntersecting) return;
+                        const fits = document.documentElement.scrollHeight <= window.innerHeight + 40;
+                        if (!this.armed && !fits) return;
                         if (this.start + this.shown < this.total) {
                             this.shown++;
                             // cek ulang: kalau hari baru pendek, sentinel masih terlihat
