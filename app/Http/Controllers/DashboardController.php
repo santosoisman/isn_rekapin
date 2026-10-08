@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $saldo = $totalIncome - $totalExpense;
 
         // Bulan yang dipilih (?bulan=2026-10), default bulan berjalan
-        ['from' => $from, 'to' => $to, 'months' => $months, 'monthLabel' => $monthLabel] = MonthTabs::make($book, $request);
+        ['from' => $from, 'to' => $to, 'months' => $months, 'monthLabel' => $monthLabel, 'isAll' => $isAll] = MonthTabs::make($book, $request);
 
         // Data khusus bulan terpilih
         $monthIncomes = $book->incomes()->whereBetween('date', [$from, $to])->get();
@@ -69,14 +69,14 @@ class DashboardController extends Controller
             ->sortByDesc(fn ($tx) => $tx->date->timestamp * 1000000 + $tx->id)
             ->values();
 
-        $breakdown = CategoryBreakdown::make($book, $from, $to);
+        $breakdown = CategoryBreakdown::make($book, $from, $to, $isAll);
 
         $recent = $allMonthTx->take(10);
         $monthTxCount = $allMonthTx->count();
 
         return view('dashboard', compact(
             'book', 'saldo', 'totalIncome', 'totalExpense',
-            'months', 'monthLabel',
+            'months', 'monthLabel', 'isAll',
             'monthIncome', 'monthExpense',
             'categories', 'categoryTotals', 'itemTotalsByCategory',
             'recent', 'monthTxCount', 'breakdown'

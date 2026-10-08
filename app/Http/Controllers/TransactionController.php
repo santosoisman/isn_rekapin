@@ -13,7 +13,7 @@ class TransactionController extends Controller
     {
         $book = $request->attributes->get('currentBook');
 
-        ['from' => $from, 'to' => $to, 'months' => $months, 'monthLabel' => $monthLabel] = MonthTabs::make($book, $request);
+        ['from' => $from, 'to' => $to, 'months' => $months, 'monthLabel' => $monthLabel, 'isAll' => $isAll] = MonthTabs::make($book, $request);
 
         $jenis = in_array($request->query('jenis'), ['keluar', 'masuk'], true) ? $request->query('jenis') : 'semua';
 
@@ -53,11 +53,29 @@ class TransactionController extends Controller
         $categories = $book->categories()->with(['items' => fn ($q) => $q->orderBy('name')])->get();
         $itemsByCategory = $categories->mapWithKeys(fn ($cat) => [$cat->id => $cat->items->pluck('name')]);
 
-        $breakdown = CategoryBreakdown::make($book, $from, $to);
+        $breakdown = CategoryBreakdown::make($book, $from, $to, $isAll);
+
+        // Tab per hari: bulanan → semua hari yang ada transaksinya; mode Semua → 31 hari per halaman
+        $perPage = 31;
+        $allKeys = $days->keys();
+        $hal = 1;
+        $hasNewer = $hasOlder = false;
+        if ($isAll) {
+            $hal = max(1, (int) $request->query('hal', 1));
+            $hasNewer = $hal > 1;
+            $hasOlder = $allKeys->count() > $hal * $perPage;
+            $pageKeys = $allKeys->slice(($hal - 1) * $perPage, $perPage)->values();
+            $days = $days->only($pageKeys->all());
+        } else {
+            $pageKeys = $allKeys;
+        }
+        $hari = (string) $request->query('hari', '');
+        $activeDay = $pageKeys->contains($hari) ? $hari : $pageKeys->first();
 
         return view('transactions.index', compact(
             'book', 'months', 'monthLabel', 'jenis', 'days',
-            'monthIncome', 'monthExpense', 'categories', 'itemsByCategory', 'breakdown'
+            'monthIncome', 'monthExpense', 'categories', 'itemsByCategory', 'breakdown',
+            'isAll', 'activeDay', 'hal', 'hasNewer', 'hasOlder'
         ));
     }
 }

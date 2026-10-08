@@ -17,6 +17,7 @@
         return ['sama', 'text-gray-500'];
     };
 
+    $isAll = ! empty($breakdown['all']);
     $gap = count($slices) > 1 ? 0.8 : 0;
     $cum = 0;
 @endphp
@@ -30,19 +31,30 @@
     @if(count($slices) === 0)
         <p class="text-sm text-gray-400 py-6 text-center">Belum ada pengeluaran di {{ $monthLabel }}.</p>
     @else
-        {{-- Perbandingan total vs bulan lalu --}}
-        <p class="text-xs text-gray-500 mb-3">
-            @if($breakdown['change'] === null)
-                Belum ada data {{ $breakdown['prevLabel'] }} untuk dibandingkan.
-            @elseif($breakdown['change'] == 0)
-                Sama dengan {{ $breakdown['prevLabel'] }} ({{ $rp($breakdown['prevTotal']) }}).
-            @else
-                <span class="font-semibold {{ $breakdown['change'] > 0 ? 'text-red-600' : 'text-emerald-600' }}">
-                    {{ $breakdown['change'] > 0 ? 'Naik' : 'Turun' }} {{ abs($breakdown['change']) }}%
-                </span>
-                dari {{ $breakdown['prevLabel'] }} ({{ $rp($breakdown['prevTotal']) }})
-            @endif
-        </p>
+        @if($isAll)
+            {{-- Mode Semua: statistik per bulan, bukan perbandingan --}}
+            <p class="text-xs text-gray-500 mb-3">
+                Rata-rata {{ $rp($breakdown['avgMonth']) }}/bulan ({{ $breakdown['monthCount'] }} bulan)
+                @if($breakdown['monthCount'] > 1)
+                    · paling boros <span class="font-semibold text-red-600">{{ $breakdown['maxMonth']['label'] }}</span> ({{ $rp($breakdown['maxMonth']['total']) }})
+                    · paling hemat <span class="font-semibold text-emerald-600">{{ $breakdown['minMonth']['label'] }}</span> ({{ $rp($breakdown['minMonth']['total']) }})
+                @endif
+            </p>
+        @else
+            {{-- Perbandingan total vs bulan lalu --}}
+            <p class="text-xs text-gray-500 mb-3">
+                @if($breakdown['change'] === null)
+                    Belum ada data {{ $breakdown['prevLabel'] }} untuk dibandingkan.
+                @elseif($breakdown['change'] == 0)
+                    Sama dengan {{ $breakdown['prevLabel'] }} ({{ $rp($breakdown['prevTotal']) }}).
+                @else
+                    <span class="font-semibold {{ $breakdown['change'] > 0 ? 'text-red-600' : 'text-emerald-600' }}">
+                        {{ $breakdown['change'] > 0 ? 'Naik' : 'Turun' }} {{ abs($breakdown['change']) }}%
+                    </span>
+                    dari {{ $breakdown['prevLabel'] }} ({{ $rp($breakdown['prevTotal']) }})
+                @endif
+            </p>
+        @endif
 
         {{-- Donut --}}
         <div style="position:relative;width:11rem;max-width:100%;margin:0 auto;">
@@ -86,7 +98,7 @@
         {{-- Legenda: tap baris untuk lihat rincian item --}}
         <div class="mt-4 divide-y">
             @foreach($slices as $i => $s)
-                @php [$btxt, $bcls] = $badge($s['change'], $s['total']); @endphp
+                @php [$btxt, $bcls] = $isAll ? ['', ''] : $badge($s['change'], $s['total']); @endphp
                 <div>
                     <button type="button" class="w-full text-left py-2 flex items-center gap-2"
                             @click="sel = sel === {{ $i }} ? null : {{ $i }}">
@@ -113,6 +125,8 @@
                 </div>
             @endforeach
         </div>
-        <p class="text-[11px] text-gray-400 mt-2">Perbandingan dihitung terhadap {{ $breakdown['prevLabel'] }}.</p>
+        @unless($isAll)
+            <p class="text-[11px] text-gray-400 mt-2">Perbandingan dihitung terhadap {{ $breakdown['prevLabel'] }}.</p>
+        @endunless
     @endif
 </div>

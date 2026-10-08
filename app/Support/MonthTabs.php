@@ -20,7 +20,9 @@ class MonthTabs
             $selected = Carbon::createFromFormat('!Y-m', $param)->startOfMonth();
         }
 
-        $selectedKey = $selected->format('Y-m');
+        // ?bulan=semua → rangkuman seluruh transaksi di buku ini
+        $isAll = strtolower($param) === 'semua';
+        $selectedKey = $isAll ? 'semua' : $selected->format('Y-m');
 
         // Chip: bulan yang ada datanya + bulan berjalan + bulan terpilih
         $keys = $book->incomes()->distinct()->pluck('date')
@@ -38,11 +40,15 @@ class MonthTabs
             'active' => $key === $selectedKey,
         ]);
 
+        // Chip "Semua" selalu paling kiri
+        $months = $months->prepend(['key' => 'semua', 'label' => 'Semua', 'active' => $isAll])->values();
+
         return [
-            'from' => $selected->copy()->startOfMonth()->toDateString(),
-            'to' => $selected->copy()->endOfMonth()->toDateString(),
+            'from' => $isAll ? '1900-01-01' : $selected->copy()->startOfMonth()->toDateString(),
+            'to' => $isAll ? '2999-12-31' : $selected->copy()->endOfMonth()->toDateString(),
             'months' => $months,
-            'monthLabel' => $selected->copy()->locale('id')->translatedFormat('F Y'),
+            'monthLabel' => $isAll ? 'Semua Waktu' : $selected->copy()->locale('id')->translatedFormat('F Y'),
+            'isAll' => $isAll,
         ];
     }
 }

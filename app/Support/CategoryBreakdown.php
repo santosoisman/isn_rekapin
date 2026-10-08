@@ -17,9 +17,9 @@ class CategoryBreakdown
     private const OTHER_COLOR = '#94a3b8';
     private const MAX_SLICES = 5;
 
-    public static function make(Book $book, string $from, string $to): array
+    public static function make(Book $book, string $from, string $to, bool $all = false): array
     {
-        $fromDate = Carbon::parse($from)->startOfMonth();
+        $fromDate = $all ? now()->startOfMonth() : Carbon::parse($from)->startOfMonth();
         $prevFrom = $fromDate->copy()->subMonthNoOverflow()->startOfMonth();
         $prevTo = $prevFrom->copy()->endOfMonth();
 
@@ -30,12 +30,15 @@ class CategoryBreakdown
             ->with('item')
             ->get();
 
-        $prevTotals = $book->expenses()
-            ->whereBetween('date', [$prevFrom->toDateString(), $prevTo->toDateString()])
-            ->selectRaw('category_id, SUM(amount) as total')
-            ->groupBy('category_id')
-            ->pluck('total', 'category_id')
-            ->map(fn ($v) => (float) $v);
+        // Mode "Semua" tidak punya pembanding bulan lalu
+        $prevTotals = $all
+            ? collect()
+            : $book->expenses()
+                ->whereBetween('date', [$prevFrom->toDateString(), $prevTo->toDateString()])
+                ->selectRaw('category_id, SUM(amount) as total')
+                ->groupBy('category_id')
+                ->pluck('total', 'category_id')
+                ->map(fn ($v) => (float) $v);
 
         $total = (float) $expenses->sum('amount');
         $prevTotal = (float) $prevTotals->sum();
@@ -81,7 +84,26 @@ class CategoryBreakdown
             ];
         }
 
-        return [
+        // Statistik per bulan untuk mode Semua (hanya bulan yang ada pengeluarannya)
+        $stats = [];
+        if ($all) {
+            $perMonth = $expenses->groupBy(fn ($e) => $e->date->format('Y-m'))
+                ->map(fn ($rows) => (float) $rows->sum('amount'))
+                ->filter(fn ($v) => $v > 0)
+                ->sortKeys();
+            $label = fn ($key) => Carbon::createFromFormat('!Y-m', $key)->locale('id')->translatedFormat('M y');
+            $maxKey = $perMonth->sortDesc()->keys()->first();
+            $minKey = $perMonth->sort()->keys()->first();
+            $stats = [
+                'all' => true,
+                'monthCount' => $perMonth->count(),
+                'avgMonth' => $perMonth->count() ? round($perMonth->sum() / $perMonth->count()) : 0,
+                'maxMonth' => $maxKey ? ['label' => $label($maxKey), 'total' => $perMonth[$maxKey]] : null,
+                'minMonth' => $minKey ? ['label' => $label($minKey), 'total' => $perMonth[$minKey]] : null,
+            ];
+        }
+
+        return $stats + [
             'total' => $total,
             'prevTotal' => $prevTotal,
             'change' => self::change($total, $prevTotal),

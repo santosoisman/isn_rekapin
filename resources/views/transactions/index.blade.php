@@ -36,8 +36,38 @@
 
     <script type="application/json" id="tx-items-by-category-json">{!! json_encode($itemsByCategory) !!}</script>
 
-    @forelse($days as $day)
-        <div>
+    {{-- Tab per hari: pilih tanggal, hanya transaksi hari itu yang tampil --}}
+    <div x-data="{ day: '{{ $activeDay }}' }">
+    @if($days->isNotEmpty())
+        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar py-1 mb-3"
+             x-init="$nextTick(() => { const a = $el.querySelector('[data-active]'); if (a) $el.scrollLeft = a.offsetLeft - ($el.clientWidth - a.offsetWidth) / 2; })">
+            @foreach($days as $key => $day)
+                <button type="button" @click="day = '{{ $key }}'"
+                        :data-active="day === '{{ $key }}' ? '' : null"
+                        :class="day === '{{ $key }}' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200'"
+                        class="shrink-0 px-3 py-1.5 rounded-xl border text-center leading-tight">
+                    <span class="block text-[10px]" style="text-transform:uppercase;">{{ $day['date']->copy()->locale('id')->translatedFormat('D') }}</span>
+                    <span class="block text-sm font-semibold">{{ $isAll ? $day['date']->copy()->locale('id')->translatedFormat('j M') : $day['date']->format('j') }}</span>
+                </button>
+            @endforeach
+        </div>
+        @if($isAll && ($hasNewer || $hasOlder))
+            @php $pageQuery = ['bulan' => 'semua', 'jenis' => $jenis === 'semua' ? null : $jenis]; @endphp
+            <div class="flex justify-between text-xs mb-3 px-1">
+                @if($hasNewer)
+                    <a href="{{ route('transactions.index', array_filter($pageQuery + ['hal' => $hal - 1 > 1 ? $hal - 1 : null])) }}" class="text-indigo-600 hover:underline">‹ Lebih baru</a>
+                @else
+                    <span></span>
+                @endif
+                @if($hasOlder)
+                    <a href="{{ route('transactions.index', array_filter($pageQuery + ['hal' => $hal + 1])) }}" class="text-indigo-600 hover:underline">Lebih lama ›</a>
+                @endif
+            </div>
+        @endif
+    @endif
+
+    @forelse($days as $key => $day)
+        <div x-show="day === '{{ $key }}'" x-cloak>
             <div class="flex items-center justify-between px-1 mb-1.5">
                 <p class="text-xs font-semibold text-gray-500">{{ $day['date']->copy()->locale('id')->translatedFormat('l, d M Y') }}</p>
                 <p class="text-xs font-medium {{ $day['net'] < 0 ? 'text-red-600' : 'text-emerald-600' }}">
@@ -166,9 +196,10 @@
         </div>
     @empty
         <div class="bg-white rounded-xl shadow-sm p-6 text-center text-sm text-gray-400">
-            Belum ada transaksi di {{ $monthLabel }}.
+            Belum ada transaksi{{ $isAll ? '' : ' di '.$monthLabel }}.
         </div>
     @endforelse
+    </div>
 
 </div>
 @endsection

@@ -37,7 +37,7 @@
                 <p class="text-base sm:text-lg font-bold text-red-600 break-words">Rp {{ number_format($monthExpense, 0, ',', '.') }}</p>
             </div>
             <div class="col-span-2 bg-white px-4 py-3 rounded-xl shadow-sm flex items-center justify-between">
-                <p class="text-xs text-gray-500">Selisih bulan ini</p>
+                <p class="text-xs text-gray-500">{{ $isAll ? 'Selisih keseluruhan' : 'Selisih bulan ini' }}</p>
                 @php $diff = $monthIncome - $monthExpense; @endphp
                 <p class="font-bold {{ $diff < 0 ? 'text-red-600' : 'text-emerald-600' }}">
                     {{ $diff < 0 ? '-' : '+' }} Rp {{ number_format(abs($diff), 0, ',', '.') }}
@@ -79,7 +79,7 @@
     {{-- Transaksi bulan terpilih --}}
     <div class="bg-white rounded-xl shadow-sm p-4">
         <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold">Transaksi {{ $monthLabel }}</h2>
+            <h2 class="font-semibold">{{ $isAll ? 'Transaksi Terbaru' : 'Transaksi '.$monthLabel }}</h2>
             <a href="{{ route('transactions.index', array_filter(['bulan' => request('bulan')])) }}" class="text-sm text-indigo-600 hover:underline">Lihat semua / edit</a>
         </div>
         <ul class="divide-y">
@@ -100,7 +100,7 @@
                     </span>
                 </li>
             @empty
-                <li class="py-2 text-sm text-gray-400">Belum ada transaksi di bulan ini.</li>
+                <li class="py-2 text-sm text-gray-400">Belum ada transaksi{{ $isAll ? '' : ' di bulan ini' }}.</li>
             @endforelse
         </ul>
         @if($monthTxCount > $recent->count())
