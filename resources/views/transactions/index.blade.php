@@ -37,14 +37,38 @@
     <script type="application/json" id="tx-items-by-category-json">{!! json_encode($itemsByCategory) !!}</script>
 
     {{-- Tab per hari: pilih tanggal, hanya transaksi hari itu yang tampil --}}
-    <div x-data="{ day: '{{ $activeDay }}' }">
+    @php
+        $activeIndex = $days->keys()->search($activeDay);
+        $activeIndex = $activeIndex === false ? 0 : $activeIndex;
+    @endphp
+    {{-- Daftar per hari: mulai dari tab terpilih, scroll sampai bawah → hari berikutnya (lebih lama) otomatis muncul --}}
+    <div x-data="{
+            start: {{ $activeIndex }}, shown: 1, total: {{ $days->count() }},
+            get current() { return Math.min(this.start + this.shown - 1, this.total - 1); },
+            pick(i) { this.start = i; this.shown = 1; },
+            init() {
+                this.$nextTick(() => {
+                    const el = this.$refs.sentinel;
+                    if (!el || !('IntersectionObserver' in window)) return;
+                    const obs = new IntersectionObserver((entries) => {
+                        if (!entries[0].isIntersecting) return;
+                        if (this.start + this.shown < this.total) {
+                            this.shown++;
+                            // cek ulang: kalau hari baru pendek, sentinel masih terlihat
+                            this.$nextTick(() => { obs.unobserve(el); obs.observe(el); });
+                        }
+                    }, { rootMargin: '0px 0px 200px 0px' });
+                    obs.observe(el);
+                });
+            }
+         }">
     @if($days->isNotEmpty())
         <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar py-1 mb-3"
-             x-init="$nextTick(() => { const a = $el.querySelector('[data-active]'); if (a) $el.scrollLeft = a.offsetLeft - ($el.clientWidth - a.offsetWidth) / 2; })">
+             x-init="const go = () => $nextTick(() => { const a = $el.querySelector('[data-active]'); if (a) $el.scrollTo({ left: a.offsetLeft - ($el.clientWidth - a.offsetWidth) / 2, behavior: 'smooth' }); }); go(); $watch('current', go)">
             @foreach($days as $key => $day)
-                <button type="button" @click="day = '{{ $key }}'"
-                        :data-active="day === '{{ $key }}' ? '' : null"
-                        :class="day === '{{ $key }}' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200'"
+                <button type="button" @click="pick({{ $loop->index }})"
+                        :data-active="current === {{ $loop->index }} ? '' : null"
+                        :class="current === {{ $loop->index }} ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200'"
                         class="shrink-0 px-3 py-1.5 rounded-xl border text-center leading-tight">
                     <span class="block text-[10px]" style="text-transform:uppercase;">{{ $day['date']->copy()->locale('id')->translatedFormat('D') }}</span>
                     <span class="block text-sm font-semibold">{{ $isAll ? $day['date']->copy()->locale('id')->translatedFormat('j M') : $day['date']->format('j') }}</span>
@@ -67,7 +91,7 @@
     @endif
 
     @forelse($days as $key => $day)
-        <div x-show="day === '{{ $key }}'" x-cloak>
+        <div x-show="{{ $loop->index }} >= start && {{ $loop->index }} < start + shown" x-cloak>
             <div class="flex items-center justify-between px-1 mb-1.5">
                 <p class="text-xs font-semibold text-gray-500">{{ $day['date']->copy()->locale('id')->translatedFormat('l, d M Y') }}</p>
                 <p class="text-xs font-medium {{ $day['net'] < 0 ? 'text-red-600' : 'text-emerald-600' }}">
@@ -199,6 +223,14 @@
             Belum ada transaksi{{ $isAll ? '' : ' di '.$monthLabel }}.
         </div>
     @endforelse
+
+    @if($days->isNotEmpty())
+        {{-- Pemicu: begitu terlihat, hari berikutnya dimuat --}}
+        <div x-ref="sentinel" style="height:1px;"></div>
+        <p x-show="start + shown >= total" x-cloak class="text-xs text-gray-400 text-center py-3">
+            @if($isAll && $hasOlder) Lanjut ke halaman berikutnya lewat "Lebih lama ›" di atas. @else Semua transaksi sudah tampil. @endif
+        </p>
+    @endif
     </div>
 
 </div>
